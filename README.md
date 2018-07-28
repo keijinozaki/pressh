@@ -1,6 +1,6 @@
 # pressh
 
-A simple CMS written with shell script
+A simple CMS written with shell script.
 
 ![screenshot_of_pressh](https://user-images.githubusercontent.com/28914851/43356870-93b2d8d8-92b3-11e8-9c17-636c4e0e18ad.png)
   
@@ -28,14 +28,14 @@ On Ubuntu, you need to install language-pack-ja-base and language-pack-ja
 
 ## Setup apache2
 
-Install apache2
+Install apache2.
 
 ```
 sudo apt install apache2
 ```
 
-Under /var/www/, make a directory named "pressh"  
-change owner and group of pressh directory to your usename.   
+Under /var/www , make a directory named "pressh".  
+Change owner and group of pressh directory to your usename.   
 
 ```
 Ex. $ chown Bob:Bob pressh
@@ -93,7 +93,7 @@ Add the line below on the last line of /etc/apache2/apache2.conf
 ServerTokens Prod
 ```
 
-Restart apache2
+Restart apache2.
 
 ```
 # service apache2 restart

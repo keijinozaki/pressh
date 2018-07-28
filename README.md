@@ -2,8 +2,10 @@
 A simple CMS written with shell script
 
 ## What's press?
-pressh is a CMS written with shell script(bash).
-pressh doesn't use database(such as mysql or so). So you can edit files with your favorite text editor.
+pressh is a CMS written with shell script (bash).
+pressh doesn't use database(such as mysql or so). 
+So you can edit files with your favorite text editor.
+And it's easy to make backup. Just copy the directory!
 
 ## Requirements
 Remote server which you can get Root Privileges.
@@ -38,12 +40,12 @@ Ex. $ chown Bob:Bob pressh
 Make conf file.
 
 ```
-\# cd /etc/apache2/sites-available/
-\# cp 000-default.conf blog.conf
-\# cd ../sites-enabled/
-\# rm 000-default.conf
-\# ln -s ../sites-available/blog.conf blog.conf
-\# service apache2 restart
+# cd /etc/apache2/sites-available/
+# cp 000-default.conf blog.conf
+# cd ../sites-enabled/
+# rm 000-default.conf
+# ln -s ../sites-available/blog.conf blog.conf
+# service apache2 restart
 ```
 
 Edit /etc/apache2/sites-available/blog.conf .
@@ -68,16 +70,16 @@ Make a directory for log files.
 
 ```
 $ sudo -s
-\# mkdir www-data
-\# chown www-data:www-data www-data/
-\# mkdir /var/log/pressh
-\# chown root:adm /var/log/pressh
+# mkdir www-data
+# chown www-data:www-data www-data/
+# mkdir /var/log/pressh
+# chown root:adm /var/log/pressh
 ```
 
 Activate apache CGI module.
 
 ```
-\# a2enmod cgi
+# a2enmod cgi
 ```
 
 Setting to not display version information on apache.
@@ -90,7 +92,7 @@ ServerTokens Prod
 Restart apache2
 
 ```
-\# service apache2 restart
+# service apache2 restart
 ```
 
 Make some directories under /var/www/pressh directory on server side.

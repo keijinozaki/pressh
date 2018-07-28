@@ -48,7 +48,7 @@ Make conf file.
 # service apache2 restart
 ```
 
-Edit /etc/apache2/sites-available/blog.conf .
+Edit /etc/apache2/sites-available/blog.conf like below.
 
 ```
 ServerAdmin (your email address)
@@ -109,4 +109,4 @@ $ sudo chmod 777 rss
 $ sudo chmod 777 sitemap
 ```
 
-Download zip file and extract in home directory.
+Finally, Download zip file and extract in home directory.

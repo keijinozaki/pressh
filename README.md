@@ -2,25 +2,25 @@
 A simple CMS written with shell script
 
 ## What's press?
-pressh is a CMS written with shell script (bash).
-pressh doesn't use database(such as mysql or so). 
-So you can edit files with your favorite text editor.
-And it's easy to make backup. Just copy the directory!
+pressh is a CMS written with shell script (bash).  
+pressh doesn't use database(such as mysql or so).  
+So you can edit files with your favorite text editor.  
+And it's easy to make backup. Just copy the directory!  
 
 ## Requirements
-Remote server which you can get Root Privileges.
-openssh-server
-apache2
-mailutils
-bash
-GNU sed
-GNU awk
-GNU date
-curl
-tree
+Remote server which you can get Root Privileges.  
+openssh-server  
+apache2  
+mailutils  
+bash  
+GNU sed  
+GNU awk  
+GNU date  
+curl  
+tree  
 
-And if you use japanese, you need to install some additional packages.
-On Ubuntu, you need to install language-pack-ja-base and language-pack-ja
+And if you use japanese, you need to install some additional packages.  
+On Ubuntu, you need to install language-pack-ja-base and language-pack-ja  
 
 ## Setup apache2
 
@@ -30,8 +30,8 @@ Install apache2
 sudo apt install apache2
 ```
 
-Under /var/www/, make a directory named "pressh"
-change owner and group of pressh directory to your usename. 
+Under /var/www/, make a directory named "pressh"  
+change owner and group of pressh directory to your usename.   
 
 ```
 Ex. $ chown Bob:Bob pressh
@@ -82,8 +82,8 @@ Activate apache CGI module.
 # a2enmod cgi
 ```
 
-Setting to not display version information on apache.
-Add the line below on the last line of /etc/apache2/apache2.conf
+Setting to not display version information on apache.  
+Add the line below on the last line of /etc/apache2/apache2.conf  
 
 ```/etc/apache2/apache2.conf
 ServerTokens Prod

@@ -1,0 +1,41 @@
+#!/bin/bash -xv
+
+dir=$(dirname $0)/..
+tmp=/tmp/$$
+
+url="http://$SERVER_NAME"
+
+cat <<END > $tmp-item
+<!-- ITEM -->
+<item>
+    <title>%3</title>
+    <link>$url/?p=%1</link>
+    <description>%5</description>
+    <pubDate>%6</pubDate>
+</item>
+<!-- ITEM -->
+END
+
+cat <<END > $tmp-rss
+<?xml version="1.0"?>
+<rss version="2.0">
+	<channel>
+		<title>pressh</title>
+		<link>$url</link>
+		<description>pressh - a simple CMS written with shell script</description>
+<!-- ITEMS -->
+	</channel>
+</rss>
+END
+
+cat $dir/cache/info |
+head -n 10 | tee $tmp-info |
+awk '{gsub(/-/,"",$4);sub(/_/, " ",$4); print $4 | "xargs -I{} date -d {} \"+%a, %d %b %Y %H %M:%S +0900\"";}' |
+sed 's/ /_/g' |
+paste -d ' ' $tmp-info - |
+$dir/bin/insetd ITEM $tmp-item - |
+sed 's/\\_/_/g' |
+sed 's/^/\t\t/' |
+$dir/bin/insetf ITEMS $tmp-rss - > $dir/rss/rss20.xml
+
+rm -f $tmp-*

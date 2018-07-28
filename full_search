@@ -1,0 +1,79 @@
+#!/bin/bash -xv
+
+dir=$(dirname $0)
+tmp=/tmp/$$
+word=$(echo $1 | nkf --url-input | sed -e 's/^w=//' -e 's/+/ /g' | tr 'a-z' 'A-Z')
+n=$(echo $2 | tr -dc '0-9')
+exec 2> $dir/../www-data/$(basename $0).$(date +%Y%m%d%H%M%S).$$
+
+prev=$((n - $LIMIT))
+next=$((n + $LIMIT))
+
+# 全文キャッシュから検索ワードを含む記事の総数を取得
+max=$(cat $dir/cache/all_text | awk -v word=$word '$2 ~ word{print $1}' | wc -l)
+# ナビゲーション文字、検索ワード、表示版を計算するための値を一時ファイルへ出力
+awk "BEGIN{if($prev>=$LIMIT){print \"PREV\", \"$word\", $prev}
+		   if($next<($max+$LIMIT)){print \"NEXT\", \"$word\", $next}}" > $tmp-pagenavi
+
+# ナビゲーションを表示する必要があればHTMLを作って一時ファイルに出力
+if [ -n "$(cat $tmp-pagenavi)" ]; then
+cat <<END > $tmp-navi
+<div class="listnavi">
+<!-- PAGENAVI -->
+	<div class="prevnext"><a href="?w=%2&n=%3">%1</a></div>
+<!-- PAGENAVI -->
+</div>
+END
+fi
+
+# 検索結果の見出し
+searchword="<h2>Search Results for \"$(echo $word | sed 's/_/ /g')\"</h2>"
+
+echo "Content-Type: text/html"
+echo
+# 検索ワードにマッチした記事が無かった場合の処理
+if [ $max -eq 0 ]; then
+	awk -v searchword="$searchword" '
+		BEGIN{print "<div class=\"summary-list\">"
+			  print searchword
+			  print "No match."
+			  print "</div>"}' |
+	$dir/bin/insetf DOCUMENT template.html - |
+	$dir/bin/insetf HEADER - header.html |
+	$dir/bin/insetf NAVI - $tmp-navi |
+	$dir/bin/insetd PAGENAVI - $tmp-pagenavi |
+	$dir/bin/insetf SIDE - side.html |
+	$dir/bin/insetf ADSIDE - ad_side.html |
+	$dir/bin/insetf FOOTER - footer.html |
+	sed "s/@title/Search Result of \"$(echo $word | sed -e 's/_/ /' -e 's/\\_/_/')\"/"
+
+# 検索ワードにマッチした記事が存在した場合の処理
+else
+	cat $dir/cache/all_text |
+	awk -v word=$word '$2 ~ word{print $1}' |
+	awk "NR==($n - $LIMIT + 1),NR==$n{print}" |
+	sed 's/_/\\\\_/g' |
+	# 検索ワードにマッチした記事の記事データを取得
+	awk -v info="$dir/cache/info" '{
+		reg = "^"$1
+		while (getline line < info){
+			if(line ~ reg)
+				print line
+		}; close(info)}' |
+	# 検索ワードにマッチした記事サマリのリストを作成
+	$dir/bin/mklist |
+	awk -v searchword="$searchword" '
+		BEGIN{print "<div class=\"summary-list\">"; print searchword}
+		{print}
+		END{print "</div>"}' |
+	$dir/bin/insetf DOCUMENT template.html - |
+	$dir/bin/insetf HEADER - header.html |
+	$dir/bin/insetf NAVI - $tmp-navi |
+	$dir/bin/insetd PAGENAVI - $tmp-pagenavi |
+	$dir/bin/insetf SIDE - side.html |
+	$dir/bin/insetf ADSIDE - ad_side.html |
+	$dir/bin/insetf FOOTER - footer.html |
+	sed "s/@title/Search Result of \"$(echo $word | sed -e 's/_/ /' -e 's/\\_/_/')\"/"
+fi
+
+rm $tmp-*

@@ -1,0 +1,50 @@
+#!/bin/bash
+
+dir=$(dirname $0)/..
+tmp=/tmp/$$
+
+while read pagedir thumb title pubtime excerpt ; do
+
+	page=$(echo $pagedir | sed 's;\\_;_;g')
+
+	cat $dir/pages/$page/categories |
+	sed -e 's/_/\\_/g' -e 's/ /_/g' |
+	awk '{word=$1;gsub(/_/,"\\\\_",word);print $1,word,'"$LIMIT"'}' > $tmp-categories
+	if [ -n "$(cat $tmp-categories)" ]; then
+	cat <<-END > $tmp-cat
+	<div class="categories">
+		<ul><span class="fas fa-folder"></span>
+		<!-- CATEGORIES -->
+			<li><a href="?c=%2&n=%3">%1</a></li>
+		<!-- CATEGORIES -->
+		</ul>
+	</div>
+	END
+	fi
+
+	cat $dir/pages/$page/tags |
+	sed -e 's/_/\\_/g' -e 's/ /_/g' |
+	awk '{tag=$1;gsub(/_/,"\\\\_",tag);print $1,tag,'"$LIMIT"'}' > $tmp-tags
+	if [ -n "$(cat $tmp-tags)" ]; then
+	cat <<-END > $tmp-tag
+	<div class="tags">
+		<ul><span class="fas fa-tags"></span>
+		<!-- TAGS -->
+			<li><a href="?t=%2&n=%3">%1</a></li>
+		<!-- TAGS -->
+		</ul>
+	</div>
+	END
+	fi
+
+	echo $pagedir $thumb $title $pubtime $excerpt |
+	$dir/bin/insetd THUMBTITLEDATE $dir/list_template.html - |
+	$dir/bin/insetf CAT - $tmp-cat |
+	$dir/bin/insetd CATEGORIES - $tmp-categories |
+	$dir/bin/insetf TAG - $tmp-tag |
+	$dir/bin/insetd TAGS - $tmp-tags |
+	sed -e 's/%5lt;/\&lt;/g' -e s'/%5gt;/\&gt;/g'
+	rm $tmp-*
+done
+
+rm $tmp-*

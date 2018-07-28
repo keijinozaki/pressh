@@ -1,0 +1,30 @@
+#!/bin/bash
+
+dir=$(dirname $0)/..
+target="$1"
+imgdir=$(dirname $1)/
+
+if [ "$#" -eq 0 ]; then
+	echo
+	echo "Usage: makethumb path_to_image_file(jpg or png)" >&2
+	echo
+	exit 1
+fi
+
+if [ ! -e "$target" ]; then
+	echo
+	echo "$target: No such file." >&2
+	echo
+	exit 1
+elif ! echo $target | grep -qE '.*\.(jpg|png)$' ; then
+	echo
+	echo "Only accept jpg or png."
+	echo
+	exit 1
+fi
+
+	ext=$(echo $target | grep -oiE '(jpg|png)$')
+	
+	convert "$target" -auto-orient -resize x100 "${imgdir}thumb.$ext"
+	convert "${imgdir}thumb.$ext" -gravity center -crop 100x100+0+0 "${imgdir}thumb_s.$ext"
+	rm "${imgdir}thumb.$ext"

@@ -1,0 +1,40 @@
+#!/bin/bash -xv
+
+dir=$(dirname $0)/..
+tmp=/tmp/$$
+
+if [ "$1" = "-" ] || [ -z "$1" ]; then
+	cat - > $tmp-file
+else
+	cat $1 > $tmp-file
+fi
+
+n=1
+while : ; do
+	if ! cat $tmp-file | grep -q "<!-- *TABLE$n *-->" ; then break; fi
+	cat $tmp-file |
+	sed -n "/<!-- *TABLE$n *-->/, /<!-- *TABLE$n *-->/p" |
+	sed "/<!-- *TABLE$n *-->/d" |
+	sed 's/\t//g' |
+	sed 's/ \+/ /g' |
+	sed 's/^/ /' |
+	sed 's; -- ; <th></th> ;g' |
+	sed 's; - ; <td></td> ;g' |
+	sed 's; @\([^ ]\+\); <th>\1</th> ;g' |
+	sed 's; \([^ <>]\+\); <td>\1</td> ;g' |
+	sed -e 's;^;<tr>;' -e 's;$;</tr>;' |
+	sed 's/ \+//g' |
+	sed -e 's/_/ /g' -e 's/\\ /_/g' |
+	awk 'BEGIN{print "<table>"}
+		{print}
+		END{print "</table>"}' > $tmp-res
+
+	sed "/<!-- *TABLE$n *-->/, /<!-- *TABLE$n *-->/c\<!-- TABLE$n -->" $tmp-file |
+	$dir/bin/insetf TABLE"$n" - $tmp-res > $tmp-html
+	mv $tmp-html $tmp-file
+
+	n=$((n + 1))
+done
+cat $tmp-file
+
+rm $tmp-*

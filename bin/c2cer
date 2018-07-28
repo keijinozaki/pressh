@@ -1,0 +1,31 @@
+#!/bin/bash -xv
+
+dir=$(dirname $0)/..
+tmp=/tmp/$$
+
+if [ "$1" = "-" ] || [ -z "$1" ]; then
+	cat - > $tmp-file
+else
+	cat $1 > $tmp-file
+fi
+
+n=1
+while : ; do
+	if ! cat $tmp-file | grep -q "<!-- *HTML$n *-->" ; then break; fi
+	cat $tmp-file |
+	sed -n "/<!-- *HTML$n *-->/, /<!-- *HTML$n *-->/p" |
+	sed "/<!-- *HTML$n *-->/d" |
+	sed 's/&/\&amp;/g' |
+	sed 's/</\&lt;/g' |
+	sed 's/>/\&gt;/g' |
+	sed 's/"/\&quot;/g' > $tmp-res
+
+	sed "/<!-- *HTML$n *-->/, /<!-- *HTML$n *-->/c\<!-- HTML$n -->" $tmp-file |
+	$dir/bin/insetf HTML"$n" - $tmp-res > $tmp-html
+	mv $tmp-html $tmp-file
+
+	n=$((n + 1))
+done
+cat $tmp-file
+
+rm $tmp-*

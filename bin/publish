@@ -1,0 +1,49 @@
+#!/bin/bash
+
+dir=$(dirname $0)
+draftdir=$dir/../drafts
+pagedir=$dir/../pages
+#remote="IP address"
+tmp=/tmp/$$
+
+if [ $# -eq 0 ]; then
+	for draftname in $(ls $draftdir); do
+		if echo $draftname | grep -Eq '^[0-9]{14}_' ; then
+			pagename=$draftname
+		else
+			pagename=$(date +%Y%m%d%H%M%S)_$draftname
+		fi
+		echo "Now publishing: $draftname"
+		mv $draftdir/$draftname $pagedir/$pagename
+		sleep 1
+	done
+else
+	for draft in "$@"; do
+		draftname=$(basename $draft)
+		if echo $draftname | grep -Eq '^[0-9]{14}_' ; then
+			pagename=$draftname
+		else
+			pagename=$(date +%Y%m%d%H%M%S)_$draftname
+		fi
+		echo "Now publishing: $draftname"
+		mv $draftdir/$draftname $pagedir/$pagename
+		sleep 1
+	done
+fi
+
+rsync -av --delete --exclude '.*' --exclude drafts --exclude comments --exclude rss --exclude cache --exclude sitemap "$HOME/pressh/" "${remote}${remote:+:}/var/www/pressh/" > $tmp-rsync
+
+if cat $tmp-rsync | grep -qE '[0-9]{14}_'; then
+	cat $tmp-rsync |
+	grep -oE '[0-9]{14}_[^/]+/$' | tr -d '/' |
+	while read page ; do
+		ssh $remote /var/www/pressh/bin/mkcache p=$page 2> /dev/null
+	done
+
+	ssh $remote /var/www/pressh/bin/mkrss 2> /dev/null 
+	ssh $remote /var/www/pressh/bin/mksitemap 2> /dev/null
+fi
+
+cat $tmp-rsync
+
+rm $tmp-*

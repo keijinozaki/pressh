@@ -1,0 +1,44 @@
+#!/bin/bash
+
+dir=$(dirname $0)
+label=$1
+tmp=/tmp/$$
+
+if [ "$2" = "-" ]; then
+	cat - > $tmp-template
+	cat $3 > $tmp-datafile
+elif [ "$3" = "-" ] || [ -z "$3" ]; then
+	cat - > $tmp-datafile
+	cat $2 > $tmp-template
+else
+	cat $2 > $tmp-template
+	cat $3 > $tmp-datafile
+fi
+
+if [ -z "$(cat $tmp-datafile)" ]; then
+	cat $tmp-template
+else
+	cat $tmp-template |
+	sed -n "/$label/, /$label/p" |
+	sed "/.*$label.*/d" |
+	awk '!a[$0]++' > $tmp-partial
+
+	awk -v partial=$tmp-partial '
+	{
+		while(getline line < partial) {
+			for (i = 1; i <= NF; i++) {
+				gsub("%"i,$i,line)
+			}
+			print line
+		}
+		close(partial)
+	}' $tmp-datafile |
+	sed 's/_/ /g' |
+	sed 's/\\ /_/g' > $tmp-res
+	
+	sed "/$label/, /$label/c\<!-- $label -->" $tmp-template > $tmp-tmp
+
+	$dir/insetf $label $tmp-tmp $tmp-res
+fi 
+
+rm $tmp-*

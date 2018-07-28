@@ -1,0 +1,25 @@
+#!/bin/bash
+
+if [ "$#" -eq 0 ]; then
+	: >&2
+	echo
+	echo -e "Usage: draft \e[3mlabel\e[0m"
+	echo
+	exit 1
+fi
+
+echo
+for label in "$@"; do
+	dir="$(dirname $0)/../drafts/$label"
+	tmp=$(dirname $0)
+	rootdir=$(dirname $tmp)
+	mkdir "$dir"
+	echo "<h1>title</h1>" > "$dir"/html
+	echo "未分類" > "$dir"/categories
+	touch "$dir"/tags
+	echo "New draft has been created as \"$rootdir/drafts/$label/html\"."
+done
+echo
+tree "$rootdir/drafts"
+echo "Now you can edit the html, categories and tags file with your favourite editor."
+echo

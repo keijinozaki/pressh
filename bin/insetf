@@ -1,0 +1,28 @@
+#!/bin/bash
+
+label=$1
+tmp=/tmp/$$
+
+if [ "$2" = "-" ]; then
+    cat - > $tmp-template
+    cat $3 > $tmp-file
+elif [ "$3" = "-" ] || [ -z "$3" ]; then
+    cat - > $tmp-file
+    cat $2 > $tmp-template
+else
+    cat $2 > $tmp-template
+    cat $3 > $tmp-file
+fi
+
+awk -v reg='<!-- *'$label' *-->' -v file=$tmp-file '
+$0 ~ reg {
+	while(getline line < file)
+		print line
+	close(file)
+	next
+}
+{
+	print
+}' $tmp-template
+
+rm $tmp-*

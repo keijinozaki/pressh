@@ -1,0 +1,18 @@
+#!/bin/bash -xv
+
+dir=$(dirname $0)
+cachedir=/var/www/pressh/cache
+tmp=/tmp/$$
+
+#page=$(echo ${QUERY_STRING} | sed 's/p=//' | tr -dc 'a-zA-Z0-9_' | sed 's/_/\\\\\\\\_/g')
+page=$(echo $1 | sed 's/p=//' | tr -dc 'a-zA-Z0-9_' | sed 's/_/\\\\\\\\_/g')
+
+### 記事リスト用キャッシュから削除 ###
+sed "/^$page/d" $cachedir/info > $tmp-info
+mv $tmp-info $cachedir/info
+
+#### 全文検索用キャッシュから削除 ###
+sed "/^$page/d" $cachedir/all_text > $tmp-all_text
+mv $tmp-all_text $cachedir/all_text
+
+rm $tmp-*

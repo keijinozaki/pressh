@@ -1,0 +1,34 @@
+#!/bin/bash -xv
+
+# サイトマップ作成スクリプト
+
+dir=$(dirname $0)/..
+tmp=/tmp/$$
+domain="http://pressh.net/?p="
+
+cat <<END > $tmp-xml
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+	<url>
+		<loc>http://pressh.net/</loc>
+	</url>
+<!-- LOC -->
+	<url>
+		<loc>%1</loc>
+		<lastmod>%2</lastmod>
+	</url>
+<!-- LOC -->
+</urlset>
+END
+
+ls $dir/pages |
+sort -r > $tmp-pages
+
+cat $tmp-pages |
+xargs -I{} date -r $dir/pages/{} +%FT%T%:z |
+paste $tmp-pages - |
+awk -v domain=$domain '{print domain $1, $2}' |
+sed 's/_/\\_/g' | 
+$dir/bin/insetd LOC $tmp-xml - > $dir/sitemap/sitemap.xml
+
+rm $tmp-*

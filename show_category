@@ -1,0 +1,78 @@
+#!/bin/bash -xv
+
+dir=$(dirname $0)
+tmp=/tmp/$$
+c=$(echo "$1" | nkf --url-input)
+n=$2
+exec 2> $dir/../www-data/$(basename $0).$(date +%Y%m%d%H%M%S).$$
+
+prev=$((n - $LIMIT))
+next=$((n + $LIMIT))
+
+# 記事ディレクトリ内のcategoriesファイルを全て出力
+find $dir/pages -name categories |
+# categoriesファイルに引数として渡されたカテゴリ名と一致する行があれば
+# その記事ディレクトリ名を一時ファイルに出力
+xargs awk '/'"$(echo $c | sed -e 's/_/ /g' -e 's/\\ /_/g')"'/{
+	sub(/.*\/pages\//,"",FILENAME)
+	sub(/\/categories$/,"",FILENAME)
+	print FILENAME}' > $tmp-pagelist
+
+# カテゴリに含まれる記事総数
+max=$(cat $tmp-pagelist | wc -l)
+# カテゴリ一覧の見出し
+catname="<h2>[CATEGORY]: $(echo $c | sed -e 's/_/ /g' -e 's/\\ /_/g')</h2>"
+
+# ナビゲーション文字、タグ名、表示範囲を計算するための値を一時ファイルに出力
+awk "BEGIN{
+	if($prev>=$LIMIT){
+		print \"PREV\", \"$(echo $c | sed -e 's/_/\\\\_/g' -e 's/ /\\_/g')\", $prev}
+	if($next<($max+$LIMIT)){
+	   	print \"NEXT\", \"$(echo $c | sed -e 's/_/\\\\_/g' -e 's/ /\\_/g')\", $next}
+	}" > $tmp-pagenavi
+
+# ナビゲーションを表示する必要があればHTMLを作って一時ファイルに出力
+if [ -n "$(cat $tmp-pagenavi)" ]; then
+cat <<END > $tmp-navi
+<div class="listnavi">
+<!-- PAGENAVI -->
+	<div class="prevnext"><a href="?c=%2&n=%3">%1</a></div>
+<!-- PAGENAVI -->
+</div>
+END
+fi
+
+echo "Content-Type: text/html"
+echo
+# 表示する記事のリストを出力
+cat $tmp-pagelist |
+sort -r |
+# リストから１ページに出力する分だけを取り出す
+awk "NR==($n - $LIMIT + 1),NR==$n{print}" |
+sed 's/_/\\\\\\\\_/g' |
+# キャッシュファイルからリストと一致する記事データを出力
+awk -v info="$dir/cache/info" '{
+	reg = "^"$1
+	while (getline line < info){
+		if(line ~ reg)
+			print line
+	}; close(info)}' |
+# 記事データから記事サマリの一覧を組み立て、HTMLにして出力
+$dir/bin/mklist |
+# リストの最初にCSS用のタグと見出しを出力
+awk -v catname="$catname" '
+	BEGIN{print "<div class=\"summary-list\">";print catname}
+	{print}
+	END{print "</div>"}' |
+# 部分的なHTMLをつなげて最終的にブラウザに出力するHTMLを組み立てる
+$dir/bin/insetf DOCUMENT template.html - |
+$dir/bin/insetf HEADER - header.html |
+$dir/bin/insetf NAVI - $tmp-navi |
+$dir/bin/insetd PAGENAVI - $tmp-pagenavi |
+$dir/bin/insetf SIDE - side.html |
+$dir/bin/insetf ADSIDE - ad_side.html |
+$dir/bin/insetf FOOTER - footer.html |
+# カテゴリ名をブラウザのタブに表示
+sed "s/@title/[CATEGORY]: $(echo $c | sed -e 's/_/ /' -e 's/\\ /_/')/"
+
+rm $tmp-*

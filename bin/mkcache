@@ -1,0 +1,123 @@
+#!/bin/bash -xv
+
+dir=$(dirname $0)/..
+cachedir=/var/www/pressh/cache
+tmp=/tmp/$$
+
+pagedir=$(echo $1 | sed 's/p=//' | tr -dc 'a-zA-Z0-9_')
+
+### 記事リスト用キャッシュ ###
+if [ -n "$(cat $cachedir/info)" ]; then
+	pagepath=$(echo $pagedir | sed "s;^;$dir/pages/;")
+	page=$(basename $pagepath | sed 's;_;\\\\\\\\_;g')
+	thumb=$(ls $pagepath | grep -oE '^thumb_s\.(jpg|png)$')
+	if [ -n "$thumb" ]; then
+		thumb=/pages/$(basename $pagepath)/$thumb
+	else
+		thumb='/default_thumb.png'
+	fi
+	thumb=$(echo $thumb | sed 's;_;\\\\\\\\_;g')
+	title=$(awk '/<[Hh]1/{gsub(/<\/*h1[^>]*>/,"",$0);print $0}' $pagepath/html |
+			sed -e 's/_/\\\\\\\\_/g' -e 's/ /_/g')
+	if [ -z "$title" ]; then
+		title="No_Title"
+	fi
+	pubtime=$(echo $pagepath | grep -oE '[0-9]{14}' |
+			  sed 's/\(........\)\(..\)\(..\)\(..\)/\1 \2:\3:\4/' |
+			  xargs -I{} date -d {} "+%Y-%m-%d %H:%M:%S" | sed 's/ /_/')
+
+	excerpt=$(cat $pagepath/html |
+			  sed '/^$/d' |
+			  sed -n '2,$p' |
+			  tr -d '\n' |
+			  sed 's;</*[^>]*>;;g' |
+			  sed 's/_/\\\\\\\\_/g' |
+			  sed 's/ /_/g' |
+			  LC_ALL=ja_JP.UTF-8 awk '{
+				  if(length($0)>94)
+					   print substr($0,1,91) "．．．"
+				  else
+					   print
+			  }')
+
+	newline="$page $thumb $title $pubtime $excerpt"
+
+	if grep -q "^$page" $cachedir/info ; then
+		awk -v page=$page -v newline="$newline" '
+			$1 == page{print newline}
+			$1 != page{print}' $cachedir/info > $tmp-info
+		mv $tmp-info $cachedir/info
+	else
+		awk -v newline="$newline" '
+			BEGIN{print newline}
+			{print}' $cachedir/info > $tmp-info
+		sort -k1 -rs $tmp-info > $cachedir/info
+	fi
+else
+	pagepath=$(echo $pagedir | sed "s;^;$dir/pages/;") 
+	page=$(basename $pagepath | sed 's;_;\\\\_;g')
+	thumb=$(ls $pagepath | grep -oE '^thumb_s\.(jpg|png)$')
+	if [ -n "$thumb" ]; then
+		thumb=/pages/$(basename $pagepath)/$thumb
+	else
+		thumb='/default_thumb.png'
+	fi
+	thumb=$(echo $thumb | sed 's;_;\\\\_;g')
+	title=$(awk '/<h1/{gsub(/<\/*h1[^>]*>/,"",$0);print $0}' $pagepath/html |
+			sed -e 's/_/\\\\_/g' -e 's/ /_/g')
+	pubtime=$(echo $pagepath | grep -oE '[0-9]{14}' |
+			  sed 's/\(........\)\(..\)\(..\)\(..\)/\1 \2:\3:\4/' |
+			  xargs -I{} date -d {} "+%Y-%m-%d %H:%M:%S" | sed 's/ /_/')
+
+	excerpt=$(cat $pagepath/html |
+			  sed '/^$/d' |
+			  sed -n '2,$p' |
+			  tr -d '\n' |
+			  sed 's;</*[^>]*>;;g' |
+			  sed 's/_/\\\\_/g' |
+			  sed 's/ /_/g' |
+			  LC_ALL=ja_JP.UTF-8 awk '{
+				  if(length($0)>94)
+					   print substr($0,1,91) "．．．"
+				  else
+					   print
+			  }')
+
+	echo $page $thumb $title $pubtime $excerpt > $cachedir/info
+fi
+
+#### 全文検索用キャッシュ ###
+if [ -n "$(cat $cachedir/all_text)" ]; then
+    file=$(echo $pagedir | sed "s;\(.*\);$dir/pages/&/html;")
+    text=$(cat $file |
+           sed 's/^$//' |
+           sed ':loop; N; $!b loop; s/\n//g' |
+           sed 's;<\/*[^>]*>;;g' |
+           tr -d ' ' |
+           tr 'a-z' 'A-Z')
+    page=$(echo $file | sed "s;$dir/pages/\(.*\)/html;\1;" | sed 's/_/\\\\\\\\_/g')
+    newline="$page $text"
+    if grep -q "^$page" $cachedir/all_text ; then
+        awk -v page=$page -v newline="$newline" '
+            $1 == page{print newline}
+            $1 != page{print}' $cachedir/all_text > $tmp-all_text
+        mv $tmp-all_text $cachedir/all_text
+    else
+        awk -v newline="$newline" '
+            BEGIN{print newline}
+            {print}' $cachedir/all_text > $tmp-all_text
+        sort -k1 -rs $tmp-all_text > $cachedir/all_text
+    fi
+else
+    file=$(echo $pagedir | sed "s;\(.*\);$dir/pages/&/html;")
+    text=$(cat $file |
+           sed 's/^$//' |
+           sed ':loop; N; $!b loop; s/\n//g' |
+           sed 's;<\/*[^>]*>;;g' |
+           tr -d ' ' |
+           tr 'a-z' 'A-Z')
+    page=$(echo $file | sed "s;$dir/pages/\(.*\)/html;\1;" | sed 's/_/\\\\_/g')
+    echo "$page $text" > $cachedir/all_text
+fi
+
+rm $tmp-*

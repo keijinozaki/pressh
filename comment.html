@@ -1,0 +1,28 @@
+<div id="comment-area">
+    <div id="comment-form">
+        <div id="input-area">
+            <div class="comment-parts">
+				<div id="name">お名前</div>
+				<div><input type="text" id="yourname" placeholder="通りすがりのシェル芸人"></div>
+			</div>
+			<div class="comment-parts">
+				<div id="quiz">Quiz: 日本の総理大臣の名前は？（漢字）</div>
+            	<div><input type="text" id="answer"></div>
+			</div>
+			<div class="comment-parts">
+				<div id="comm">コメント本文</div>
+           		<div>
+					<textarea id="text" rows="5" maxlength="300" wrap="soft"></textarea>
+				</div>
+			</div>
+   			<div id="commentbutton">
+				<input type="button" onclick="comment(
+					document.getElementById('yourname').value,
+					document.getElementById('answer').value,
+					document.getElementById('text').value)" value="コメントを投稿"> 
+			</div>
+        </div>
+    </div>
+    <div id="comments"></div>
+</div>
+

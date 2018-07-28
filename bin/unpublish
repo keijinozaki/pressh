@@ -1,0 +1,33 @@
+#!/bin/bash
+
+dir=$(dirname $0)
+pagedir=$(dirname $0)/../pages
+draftdir=$(dirname $0)/../drafts
+#remote="IP address"
+tmp=/tmp/$$
+moved=0
+
+for page in "$@" ; do
+	pagename=$(basename $page)
+	if [ -e $pagedir/$pagename ]; then
+		mv $pagedir/$pagename $draftdir/$pagename
+		echo "$pagename has been moved to drafts."
+		moved=1
+	else
+		echo "$pagename: No such page." >&2
+	fi
+done
+
+if [ "$moved" -eq 1 ]; then
+	rsync -av --delete $pagedir/ $remote${remote:+:}/var/www/pressh/pages/ |
+	tee $tmp-rsync |
+	grep -oE '[0-9]{14}_[^/]+/$' | tr -d '/' |
+	while read page ; do
+		ssh $remote /var/www/pressh/bin/delcache p=$page 2> /dev/null
+	done
+
+	ssh $remote /var/www/pressh/bin/mkrss 2> /dev/null
+	
+	cat $tmp-rsync
+	rm $tmp-*
+fi

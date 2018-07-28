@@ -1,0 +1,11 @@
+#!/bin/bash -xv
+
+dir=$(dirname $0)/..
+comdir=$dir/comments
+tmp=/tmp/$$
+eval $(echo $1 | tr -dc 'a-zA-Z0-9_&=:-' | sed 's/&/;/g')
+
+cat $comdir/$p/comments |
+awk -v date=$d '$2 != date{print}' > $tmp-comments
+mv $tmp-comments $comdir/$p/comments
+rm $tmp-*

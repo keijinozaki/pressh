@@ -1,0 +1,77 @@
+#!/bin/bash -xv
+
+dir=$(dirname $0)
+tmp=/tmp/$$
+t=$(echo "$1" | nkf --url-input)
+n=$(echo $2 | tr -dc '0-9')
+exec 2> $dir/../www-data/$(basename $0).$(date +%Y%m%d%H%M%S).$$
+
+prev=$((n - $LIMIT))
+next=$((n + $LIMIT))
+
+# 記事ディレクトリにあるtagsファイルを全て出力
+find $dir/pages -name tags |
+# 引数として渡されたタグ名と一致するタグが付けられた記事ディレクトリ名を一時ファイルに出力
+xargs awk '/'"$(echo $t | sed -e 's/_/ /g' -e 's/\\ /_/g')"'/{
+	gsub(/.*\/pages\//,"",FILENAME)
+	gsub(/\/tags$/,"",FILENAME)
+	print FILENAME}' > $tmp-pagelist
+
+# タグが付けられた記事総数
+max=$(cat $tmp-pagelist | wc -l)
+# 一覧ページの見出し
+tagname="<h2>[TAG]: $(echo $t | sed -e 's/_/ /g' -e 's/\\ /_/g')</h2>"
+
+# ナビゲーション文字、タグ名、表示範囲を計算するための値を一時ファイルに出力
+awk "BEGIN{
+	if($prev>=$LIMIT){
+		print \"PREV\", \"$(echo $t | sed -e 's/_/\\\\_/g' -e 's/ /\\_/g')\", $prev}
+	if($next<($max+$LIMIT)){
+		print \"NEXT\", \"$(echo $t | sed -e 's/_/\\\\_/g' -e 's/ /\\_/g')\", $next}
+	}" > $tmp-pagenavi
+
+# ナビゲーションを表示する必要があればHTMLを作って一時ファイルに出力
+if [ -n "$(cat $tmp-pagenavi)" ]; then
+cat <<END > $tmp-navi
+<div class="listnavi">
+<!-- PAGENAVI -->
+	<div class="prevnext"><a href="?t=%2&n=%3">%1</a></div>
+<!-- PAGENAVI -->
+</div>
+END
+fi
+
+echo "Content-Type: text/html"
+echo
+# 表示する記事のリストを出力
+cat $tmp-pagelist |
+sort -r |
+# リストから１ページに出力する分だけを取り出す
+awk "NR==($n - $LIMIT + 1),NR==$n{print}" |
+sed 's/_/\\\\\\\\_/g' |
+# キャッシュファイルからリストと一致する記事データを出力
+awk -v info="$dir/cache/info" '{
+	reg = "^"$1
+    while (getline line < info){
+        if(line ~ reg)
+            print line
+    }; close(info)}' |
+# 記事データから記事サマリの一覧を組み立て、HTMLにして出力
+$dir/bin/mklist |
+# リストの最初にCSS用のタグと見出しを出力
+awk -v tagname="$tagname" '
+	BEGIN{print "<div class=\"summary-list\">"; print tagname}
+	{print}
+	END{print "</div>"}' |
+# 部分的なHTMLをつなげてブラウザに出力するHTMLを組み立てる
+$dir/bin/insetf DOCUMENT template.html - |
+$dir/bin/insetf HEADER - header.html |
+$dir/bin/insetf NAVI - $tmp-navi |
+$dir/bin/insetd PAGENAVI - $tmp-pagenavi |
+$dir/bin/insetf SIDE - side.html |
+$dir/bin/insetf ADSIDE - ad_side.html |
+$dir/bin/insetf FOOTER - footer.html |
+# タグ名をブラウザのタブに表示
+sed "s/@title/[TAG]: $(echo $t | sed -e 's/_/ /' -e 's/\\ /_/')/"
+
+rm $tmp-*

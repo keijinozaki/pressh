@@ -1,0 +1,189 @@
+#!/bin/bash -xv
+
+dir=$(dirname $0)
+tmp=/tmp/$$
+url="http://$SERVER_NAME/?p="
+
+exec 2> $dir/../www-data/$(basename $0).$(date +%Y%m%d%H%M%S).$$
+
+page=$(echo "$1" | tr -dc 'a-zA-Z0-9_')
+
+# 固定ページの場合の処理
+if echo $page | grep -q -f $dir/exclude_pages ; then
+	echo "Content-Type: text/html"
+	echo
+	sed 's/^/\t/' "$dir/pages/$page/html" |
+	# 各種ファイルへのリンク、外部サイトへのリンク、サイト内リンクが機能するように調整
+	sed "s;<[^>]* \(href\|src\)=\";&/pages/$page/;g" |
+	sed "s;\"/pages/$page/\([^:\"]*://\);\"\1;g" |
+	sed "s;\"/pages/$page/\.\./;\"?p=;g" |
+	# 記事本文をarticleタグで囲む
+	awk 'BEGIN{print "<article class=\"kiji\">"}
+		 {print}
+		 END{print "</article>"}' |
+	# 固定ページの場合はソーシャルボタンやコメント欄は表示しない
+	$dir/bin/insetf DOCUMENT page_template.html - |
+	$dir/bin/insetf HEADER - header.html |
+	$dir/bin/insetf SIDE - side.html |
+	$dir/bin/insetf ADSIDE - ad_side.html |
+	$dir/bin/insetf FOOTER - footer.html |
+	# テーブル（表）を作成
+	$dir/bin/insett - |
+	# 文字実体参照へ変換
+	$dir/bin/c2cer - |
+	sed "s/@title/$(echo $title | nkf -Ww --url-input | sed -e 's/_/ /g' -e 's/\\ /_/g')/"
+
+# 通常の記事を表示する処理
+elif ls -f $dir/pages | grep -q "^${page%#*}" ; then
+	ls -f $dir/pages |
+	sort |
+	# ナビゲーション用に前後の記事も合わせて取り出す
+	grep -B 1 -A 1 "$page" |
+	# 改行を空白に置換して一行にする
+	tr '\n' ' ' |
+	# 最初と最後のフィールドを取り出す
+	awk '{print $1,$NF}' |
+	# 空白を改行に戻す
+	tr ' ' '\n' |
+	# 記事ディレクトリ名をhtmlファイルへのパスに置換
+	sed "s;.*;$dir/pages/&/html;" |
+	# h1タグで囲まれた記事タイトルと記事ディレクトリ名を抜き出す
+	xargs awk '
+		/<[Hh]1/{
+				gsub(/<\/*[Hh]1[^>]*>/, "", $0)
+				path = gensub(/.*\/pages\/(.*)\/html/, "\\1", 1, FILENAME)
+				print path, $0
+			}' |
+	# ナビゲーション文字、記事タイトル、記事ディレクトリを出力
+	awk 'NR==1{print "PREV",$2,$1}
+		 NR==2{print "NEXT",$2,$1}' |
+	# ナビゲーションに現在表示している記事が含まれていれば削除
+	grep -v "$page$" |
+	sed 's/_/\\_/g' > $tmp-pagenavi
+	# ナビゲーションを表示する必要があればHTMLを作って一時ファイルに出力
+	if [ -n "$(cat $tmp-pagenavi)" ]; then
+	cat <<-END > $tmp-navi
+	<div class="pagenavi">
+	<!-- PAGENAVI -->
+		<div><span class="prevnext">%1</span>&emsp;<a href="?p=%3">%2</a></div>
+	<!-- PAGENAVI -->
+	</div>
+	END
+	fi
+
+	# 記事の公開時刻を取得
+	pubtime=$(echo $page |
+	grep -oE '[0-9]{14}' |
+	sed 's/\(........\)\(..\)\(..\)\(..\)/\1 \2:\3:\4/' |
+	xargs -I{} date -d {} "+%Y-%m-%d %H:%M:%S")
+	pubtime="<div class=\"time\"><span class=\"fas fa-clock\"></span>&nbsp;$pubtime</div>"
+
+	# 記事のカテゴリを取得
+	cat $dir/pages/$page/categories |
+    sed -e 's/_/\\_/g' -e 's/ /_/g' |
+    awk '{word=$1;gsub(/_/,"\\\\_",word);print $1,word,'"$LIMIT"'}' > $tmp-categories
+	if [ -n "$(cat $tmp-categories)" ]; then
+	cat <<-END > $tmp-cat
+	<div class="pagecat">
+		<div class="categories">
+			<ul><span class="fas fa-folder"></span>
+			<!-- CATEGORIES -->
+				<li><a href="?c=%2&n=%3">%1</a></li>
+			<!-- CATEGORIES -->
+			</ul>
+		</div>
+	</div>
+	END
+	fi
+    # 記事に付けられたタグを取得
+    cat $dir/pages/$page/tags |
+    sed -e 's/_/\\_/g' -e 's/ /_/g' |
+    awk '{tag=$1;gsub(/_/,"\\\\_",tag);print $1,tag,'"$LIMIT"'}' > $tmp-tags
+	if [ -n "$(cat $tmp-tags)" ]; then
+	cat <<-END > $tmp-tag
+	<div class="pagetag">
+		<div class="tags">
+			<ul><span class="fas fa-tags"></span>
+			<!-- TAGS -->
+				<li><a href="?t=%2&n=%3">%1</a></li>
+			<!-- TAGS -->
+			</ul>
+		</div>
+	</div>
+	END
+	fi
+
+	# ソーシャルボタン用に記事タイトルをエンコードする
+	title=$(cat $dir/pages/$page/html |
+	awk '/<[Hh]1/{gsub(/<\/*[Hh]1[^>]*>/, "", $0)
+			   gsub(/_/, "\\_", $0)
+			   gsub(/ /, "_", $0)
+			   print $0}' |
+	nkf -WwMQ | tr = % | tr -d '\n' | sed 's/%%/%/g')
+
+	# ソーシャルボタン用に記事のURLをエンコードする
+	url=$(echo $url$page | nkf -WwMQ | tr = % | tr -d '\n' | sed 's/%%/%/g')
+
+	# ソーシャルボタン用のテンプレート
+	cat <<-END > $tmp-social
+	<div class="sns">
+		<ul>
+			<li><a href="http://twitter.com/intent/tweet?url=$url&text=$title" class="fab fa-twitter"><span class="sr-only">Twitter</span></a></li>
+			<li><a href="http://www.facebook.com/share.php?u=$url" onclick="window.open(this.href,'FBwindow','width=650,height=450,menubar=no,toolbar=no,scrollbars=yes');return false;" title="Facebookでシェア" class="fab fa-facebook-f"><span class="sr-only">Facebook</span></a></li>
+			<li><a href="https://plus.google.com/share?url=$url" class="fab fa-google-plus-g"><span class="sr-only">Google+</span></a></li>
+		</ul>
+	</div>
+	END
+
+	echo "Content-Type: text/html"
+	echo
+	# 各種ファイルへのリンク、外部リンク、サイト内リンクが機能するように調整
+	sed 's/^/\t/' "$dir/pages/$page/html" |
+	sed "s;<[^>]* \(href\|src\)=\";&/pages/$page/;g" |
+	sed "s;\"/pages/$page/\([^:\"]*://\);\"\1;g" |
+	sed "s;\"/pages/$page/\.\./;\"?p=;g" |
+	# 公開時刻を記事の最初に挿入
+	awk -v pubtime="$pubtime" '
+		 BEGIN{print "<article class=\"kiji\">";print pubtime}
+		 {print}
+		 END{print "</article>"}' |
+	$dir/bin/insetf DOCUMENT page_template.html - |
+	$dir/bin/insetf HEADER - header.html |
+	$dir/bin/insetf CAT - $tmp-cat |
+	$dir/bin/insetd CATEGORIES - $tmp-categories |
+	$dir/bin/insetf TAG - $tmp-tag |
+	$dir/bin/insetd TAGS - $tmp-tags |
+	$dir/bin/insetf NAVI - $tmp-navi |
+	$dir/bin/insetd PAGENAVI - $tmp-pagenavi |
+	$dir/bin/insetf SNS - $tmp-social |
+	$dir/bin/insetf COMMENT - comment.html |
+	$dir/bin/insetf SIDE - side.html |
+	$dir/bin/insetf ADSIDE - ad_side.html |
+	$dir/bin/insetf FOOTER - footer.html |
+	$dir/bin/insetf ADMAIN - ad_main.html |
+	$dir/bin/insett - |
+	$dir/bin/c2cer - |
+	sed "s/@title/$(echo $title | nkf -Ww --url-input | sed -e 's/_/ /g' -e 's/\\ /_/g')/"
+
+# 該当する記事が存在しない場合の処理
+else
+	echo "Content-Type: text/html"
+	echo
+	cat <<-END |
+	<article class="kiji">
+	<h1>No such page.</h1>
+	</article>
+	END
+	$dir/bin/insetf DOCUMENT template.html - |
+	$dir/bin/insetf HEADER - header.html |
+	$dir/bin/insetf SNS - $tmp-social |
+	$dir/bin/insetf SIDE - side.html |
+	$dir/bin/insetf ADSIDE - ad_side.html |
+	$dir/bin/insetf FOOTER - footer.html |
+	$dir/bin/insetf ADMAIN - ad_main.html |
+	$dir/bin/insett - |
+	$dir/bin/c2cer - |
+	sed 's/@title/No such page./'
+fi
+
+rm $tmp-*

@@ -1,5 +1,6 @@
 # pressh
 A simple CMS written with shell script
+![screenshot_of_pressh](https://user-images.githubusercontent.com/28914851/43356870-93b2d8d8-92b3-11e8-9c17-636c4e0e18ad.png)
 
 ## What's press?
 pressh is a CMS written with shell script (bash).  

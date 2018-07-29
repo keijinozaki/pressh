@@ -206,4 +206,4 @@ Please write one item per line.
 
 ## Publishing article
 
-(ToDO)
+(ToDo)

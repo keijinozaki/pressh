@@ -240,7 +240,7 @@ The article to be made private will be moved from pages directory on the local m
 
 Thereafter, pages directory on the local machine and /var/www/pressh/pages directory on the server will be synchronized. 
 
-# Notify by email that comment has been posted.
+# Notify by email that comment has been posted
 
 Install mailutils on the server.
 

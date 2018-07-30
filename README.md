@@ -37,10 +37,12 @@ sudo apt install apache2
 ```
 
 Under /var/www , make a directory named "pressh".  
-Change owner and group of pressh directory to your usename.   
+Change owner and group of pressh directory to your username.   
 
 ```
-Ex. $ chown Bob:Bob pressh
+# cd /var/www
+# mkdir pressh
+# chown [your_user_name]:[yor_user_name] pressh
 ```
 
 Make conf file.

@@ -206,4 +206,69 @@ Please write one item per line.
 
 ## Publishing article
 
-(ToDo)
+To publish a article, you can use "publish" command.
+
+Before you use publish command, you need to edit bin/publish .  
+Open bin/publish with editor and you will see "remote" variable at the beginning of the file.  
+Delete "#" at the head of the line and subsutitute the IP address of the server for the remote variable.
+
+After editing bin/publish, execute the publish command.
+For example,
+
+```
+$ bin/publish drafts/[draft_name]
+```
+
+if you pass no argument to publish command, all drafts in the drafts directory will be published.
+
+By executing publish command, 14 digit number representing release date and time will be added to draft name. And the draft will be moved to pages directory.
+
+Thereafter, pages directory on the local machine and /var/www/pressh/pages directory on the server will be synchronized. In addition to it, files other than article files are also synchronized.
+
+# Unpublish article (making article private)
+
+To make article private, use "unpublish" command.
+
+```
+$ bin/unpublish pages/[article_name]
+```
+
+Like the publish command, you need to edit bin/unpublish .  
+Open bin/unpublish with editor and you will see "remote" variable at the beginning of the file. Delete "#" at the head of the line and subsutitute the IP address of the server for the remote variable.
+
+The article to be made private will be moved from pages directory on the local machine to draft directory on local machine with 14 digit number at the head of the article name.
+
+Thereafter, pages directory on the local machine and /var/www/pressh/pages directory on the server will be synchronized. 
+
+# Notify by email that comment has been posted.
+
+Install mailutils on the server.
+
+```
+$ sudo apt install mailutils
+```
+
+Next, edit ajax/comment.cgi .
+Subsutitute your email address for the "email" variable At the beginngin of the file
+
+# Show ADs
+
+To display advertisements under the article body please paste the ad into the file ad_main.html.  
+To display ads in the sidebar please paste the advertisement in the file ad_side.html.  
+# Change quiz and answer in comment field
+
+When posting comments to prevent spam you have to answer quizzes.  
+To change the contents of the quiz edit the comments.html file.  
+By default it is a question like below, so please freely change the sentences between the div tags.
+
+```
+<div id="quiz">Quiz: 日本の総理大臣の名前は？（漢字）</div>
+```
+
+To change the answer to the quiz, substitute the answer of the new quiz to the variable called ANSWER in the first line of the comment function of the file called functions.js. The default is as shown below.
+
+```
+function comment(name,answer,text) {
+  var ANSWER = "安倍晋三";
+```
+

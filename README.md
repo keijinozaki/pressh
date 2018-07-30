@@ -11,6 +11,8 @@ pressh doesn't use database(such as mysql or so).
 So you can edit files with your favorite text editor.  
 And it's easy to make backup. Just copy the directory!  
 
+For japanese instruction, please visit [http://pressh.net](http://pressh.net) .
+
 ## Requirements
 Remote server which you can get Root Privileges.  
 openssh-server  

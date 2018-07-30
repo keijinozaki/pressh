@@ -42,7 +42,7 @@ Change owner and group of pressh directory to your username.
 ```
 # cd /var/www
 # mkdir pressh
-# chown [your_user_name]:[yor_user_name] pressh
+# chown [your_username]:[your_username] pressh
 ```
 
 Make conf file.

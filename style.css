@@ -28,6 +28,7 @@ td {
 
 .site {
 	margin: 5px 0;
+	margin-left: 20px;
 }
 
 .site a {
@@ -62,6 +63,7 @@ button:focus {
 .menu ul {
 	display: flex;
 	margin: 0;
+	margin-left: 5px;
 	padding: 0;
 	list-style: none;
 }
@@ -77,6 +79,12 @@ button:focus {
 
 .menu li a:hover {
 	background-color: #a3a382;
+}
+
+/* ### 記事本文 ### */
+
+.kiji {
+	margin-left: 20px;
 }
 
 .kiji img {
@@ -586,37 +594,47 @@ body {
 
 @media (max-width: 900px) {
 
-body {
-	grid-template-areas:
-		"space1 head   space2"
-		"menu   menu   menu"
-		"space  space  space"
-		"space3 main   space4"
-		"space5 space5 space5"
-		"space6 side   space7"
-		"foot1  foot2  foot3";
-	grid-template-columns: 20px 1fr 20px;
-	grid-template-rows: auto auto 30px auto 30px auto auto;
-	min-width: 550px;
-}
+	body {
+		grid-template-areas:
+			"space1 head   space2"
+			"menu   menu   menu"
+			"space  space  space"
+			"space3 main   space4"
+			"space5 space5 space5"
+			"space6 side   space7"
+			"foot1  foot2  foot3";
+		grid-template-columns: 20px 1fr 20px;
+		grid-template-rows: auto auto 30px auto 30px auto auto;
+		min-width: 550px;
+	}
 
-button {
-	display: block;
-}
+	.site {
+		margin-left: 0;
+	}
 
-.menu {
-	grid-area: menu;
-	justify-self: stretch;
-	max-height: 0;
-	overflow: hidden;
-}
+	.kiji {
+		margin-left: 0;
+	}
 
-.menu ul {
-	flex-direction: column;
-}
+	button {
+		display: block;
+	}
 
-.menu li {
-	line-height: 10px;
+	.menu {
+		grid-area: menu;
+		justify-self: stretch;
+		max-height: 0;
+		overflow: hidden;
+	}
+
+	.menu ul {
+		flex-direction: column;
+	}
+
+	.menu li {
+		line-height: 10px;
+	}
+
 }
 	
 
@@ -624,27 +642,27 @@ button {
 
 @media (max-width: 600px) {
 
-#ad-main {
-	display: flex;
-	padding: 30px 0 0 0;
-	flex-direction: column;
-}
+	#ad-main {
+		display: flex;
+		padding: 30px 0 0 0;
+		flex-direction: column;
+	}
 
-#ad-main div {
-	margin: 0 5px 0 5px;
-}
+	#ad-main div {
+		margin: 0 5px 0 5px;
+	}
 
-#text {
-	width: 100%;
-}
+	#text {
+		width: 100%;
+	}
 
-#button {
-	margin: 0;
-	text-align: center;
-}
+	#button {
+		margin: 0;
+		text-align: center;
+	}
 
-#searchbox div form {
-	text-align: left;
-}
+	#searchbox div form {
+		text-align: left;
+	}
 
 }
